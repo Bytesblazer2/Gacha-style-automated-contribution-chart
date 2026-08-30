@@ -1,0 +1,55 @@
+name: Daily Auto Commit
+
+on:
+  schedule:
+    - cron: '0 0 * * *'
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  auto-commit:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Make weighted commits
+        run: |
+          git config --global user.name "github-actions[bot]"
+          git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          
+          # Generate a random number between 1 and 100
+          ROLL=$(( ( RANDOM % 100 ) + 1 ))
+          
+          # Weighted loot table probabilities
+          if [ $ROLL -le 50 ]; then
+            # 50% chance: Common (Light Green)
+            COMMITS=1
+            TIER="Common"
+          elif [ $ROLL -le 80 ]; then
+            # 30% chance: Rare (Medium Green)
+            COMMITS=3
+            TIER="Rare"
+          elif [ $ROLL -le 95 ]; then
+            # 15% chance: Epic (Dark Green)
+            COMMITS=6
+            TIER="Epic"
+          else
+            # 5% chance (~once every 3 weeks): Legendary (Deepest Green)
+            COMMITS=12
+            TIER="Legendary"
+          fi
+
+          echo "Rolled $ROLL: $TIER tier ($COMMITS commits)"
+
+          for i in $(seq 1 $COMMITS); do
+            date --iso-8601=seconds >> activity.txt
+            git add activity.txt
+            git commit -m "Commit $i of $COMMITS [$TIER Drop] [skip ci]"
+          done
+          
+          git push
+
+
